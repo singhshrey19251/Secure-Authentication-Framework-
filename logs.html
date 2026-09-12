@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Auth OS | Logs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --cyan: #20E6FF;
+            --yellow: #FFD166;
+            --red: #FF3B5C;
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(circle at 80% 0%, rgba(255,59,92,.10), transparent 28%), #050A14;
+            color: #D7F8FF;
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: rgba(5,10,20,.96);
+            border-right: 1px solid rgba(32,230,255,.2);
+        }
+
+        .nav {
+            display: block;
+            border: 1px solid rgba(32,230,255,.18);
+            background: rgba(32,230,255,.04);
+            color: #B9F7FF;
+            transition: .22s;
+        }
+
+        .nav:hover,
+        .nav.active {
+            transform: translateX(5px);
+            border-color: rgba(32,230,255,.6);
+            background: rgba(32,230,255,.12);
+        }
+
+        .panel {
+            background: rgba(7,16,31,.84);
+            border: 1px solid rgba(32,230,255,.22);
+            box-shadow: 0 0 28px rgba(32,230,255,.08);
+        }
+
+        .live {
+            animation: blink 1s infinite;
+            box-shadow: 0 0 16px #42FF9E;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: .25;
+            }
+        }
+
+        .severity-INFO {
+            color: #69D7FF;
+            border-color: rgba(105,215,255,.35);
+            background: rgba(105,215,255,.08);
+        }
+
+        .severity-WARNING {
+            color: #FFD166;
+            border-color: rgba(255,209,102,.35);
+            background: rgba(255,209,102,.08);
+        }
+
+        .severity-CRITICAL {
+            color: #FF3B5C;
+            border-color: rgba(255,59,92,.35);
+            background: rgba(255,59,92,.08);
+        }
+
+        tr {
+            transition: .2s;
+        }
+
+        tr:hover {
+            background: rgba(32,230,255,.06);
+        }
+
+        @media (max-width: 900px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .content {
+                padding: 18px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <aside class="sidebar p-6">
+            <div class="text-cyan-300 font-black tracking-[.28em] text-sm mb-10">
+                SECURE AUTH OS
+            </div>
+
+            <nav class="space-y-3">
+                <a class="nav rounded-xl px-4 py-3 font-bold" href="{{ url_for('dashboard') }}">
+                    Dashboard
+                </a>
+
+                <a class="nav rounded-xl px-4 py-3 font-bold" href="{{ url_for('sessions_page') }}">
+                    Active Sessions
+                </a>
+
+                <a class="nav active rounded-xl px-4 py-3 font-bold" href="{{ url_for('logs_page') }}">
+                    Security Logs
+                </a>
+
+                <a class="nav rounded-xl px-4 py-3 font-bold" href="{{ url_for('profile') }}">
+                    Profile
+                </a>
+            </nav>
+        </aside>
+
+        <main class="content p-7 space-y-6">
+            <header class="panel rounded-3xl p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="text-xs text-cyan-300/70 uppercase tracking-[.28em]">
+                        Real-time Logs
+                    </div>
+
+                    <h1 class="text-3xl font-black text-white">
+                        Security Event Stream
+                    </h1>
+                </div>
+
+                <div class="flex items-center gap-3 rounded-full border border-green-300/30 bg-green-300/10 px-4 py-2">
+                    <span class="live w-3 h-3 rounded-full bg-green-300"></span>
+                    <span class="font-black text-green-200 tracking-widest">LIVE</span>
+                </div>
+            </header>
+
+            <section class="grid sm:grid-cols-3 gap-4">
+                <div class="panel rounded-2xl p-5">
+                    <div class="text-xs text-cyan-300/70 tracking-widest">
+                        INFO
+                    </div>
+                    <div id="infoCount" class="text-4xl font-black text-cyan-200">
+                        0
+                    </div>
+                </div>
+
+                <div class="panel rounded-2xl p-5">
+                    <div class="text-xs text-cyan-300/70 tracking-widest">
+                        WARNING
+                    </div>
+                    <div id="warningCount" class="text-4xl font-black text-yellow-200">
+                        0
+                    </div>
+                </div>
+
+                <div class="panel rounded-2xl p-5">
+                    <div class="text-xs text-cyan-300/70 tracking-widest">
+                        CRITICAL
+                    </div>
+                    <div id="criticalCount" class="text-4xl font-black text-red-300">
+                        0
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel rounded-3xl p-5 overflow-auto">
+                <table class="w-full min-w-[980px] text-sm">
+                    <thead class="text-cyan-300/70 uppercase tracking-widest text-xs">
+                        <tr>
+                            <th class="text-left p-4">Timestamp</th>
+                            <th class="text-left p-4">Event Type</th>
+                            <th class="text-left p-4">Username</th>
+                            <th class="text-left p-4">IP Address</th>
+                            <th class="text-left p-4">Severity</th>
+                            <th class="text-left p-4">Message</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="logRows"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function badge(severity) {
+            return `
+                <span class="severity-${severity} inline-block border rounded-full px-3 py-1 font-black">
+                    ${severity}
+                </span>
+            `;
+        }
+
+        function render(logs) {
+            document.getElementById('logRows').innerHTML = logs.map(log => `
+                <tr>
+                    <td class="p-4 text-cyan-100/65">${log.timestamp}</td>
+                    <td class="p-4 font-black">${log.event_type}</td>
+                    <td class="p-4">${log.username}</td>
+                    <td class="p-4">${log.ip}</td>
+                    <td class="p-4">${badge(log.severity)}</td>
+                    <td class="p-4 text-cyan-100/72">${log.message}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('infoCount').textContent =
+                logs.filter(log => log.severity === 'INFO').length;
+
+            document.getElementById('warningCount').textContent =
+                logs.filter(log => log.severity === 'WARNING').length;
+
+            document.getElementById('criticalCount').textContent =
+                logs.filter(log => log.severity === 'CRITICAL').length;
+        }
+
+        async function refreshLogs() {
+            const response = await fetch("{{ url_for('api_logs') }}");
+            const data = await response.json();
+
+            render(data.logs);
+        }
+
+        refreshLogs();
+        setInterval(refreshLogs, 2600);
+    </script>
+</body>
+</html>
