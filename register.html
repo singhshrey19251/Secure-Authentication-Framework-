@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Authentication Framework | Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --cyan:#20E6FF; --yellow:#FFD166; --red:#FF3B5C; }
+        body { margin:0; min-height:100vh; background:radial-gradient(circle at 12% 0%, rgba(32,230,255,.20), transparent 34%), radial-gradient(circle at 82% 84%, rgba(255,59,92,.12), transparent 30%), #050A14; color:#D7F8FF; font-family:Inter, ui-sans-serif, system-ui, sans-serif; }
+        .grid-bg { position:fixed; inset:0; background-image:linear-gradient(rgba(32,230,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(32,230,255,.04) 1px, transparent 1px); background-size:42px 42px; }
+        .panel { background:rgba(7,15,31,.86); border:1px solid rgba(32,230,255,.34); box-shadow:0 0 42px rgba(32,230,255,.16), inset 0 0 25px rgba(29,123,255,.08); backdrop-filter:blur(18px); }
+        .field { background:rgba(2,8,18,.92); border:1px solid rgba(32,230,255,.28); color:#EAFDFF; transition:.25s; }
+        .field:focus { outline:none; border-color:var(--cyan); box-shadow:0 0 18px rgba(32,230,255,.28); }
+        .pulse-btn { background:linear-gradient(135deg, #0A59FF, #20E6FF); color:#00111A; font-weight:900; box-shadow:0 0 26px rgba(32,230,255,.36); transition:.25s; }
+        .pulse-btn:hover { transform:translateY(-2px); box-shadow:0 0 44px rgba(32,230,255,.56); }
+        .toast { border-left:3px solid var(--cyan); background:rgba(32,230,255,.08); }
+        .toast.error { border-color:var(--red); background:rgba(255,59,92,.08); }
+        .toast.success { border-color:#42FF9E; background:rgba(66,255,158,.08); }
+    </style>
+</head>
+<body class="flex items-center justify-center p-6">
+    <div class="grid-bg"></div>
+
+    <main class="panel relative z-10 rounded-3xl p-8 w-full max-w-2xl">
+        <div class="text-cyan-300 font-black tracking-[.35em] text-sm">SECURE REGISTRATION</div>
+
+        <h1 class="text-4xl md:text-5xl font-black text-white mt-5">
+            Create protected OS account
+        </h1>
+
+        <p class="text-cyan-100/65 mt-4">
+            Password policy requires uppercase, lowercase, number, special character, and minimum 8 characters.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-3 my-5">
+                    {% for category, message in messages %}
+                        <div class="toast {{ category }} rounded-xl px-4 py-3 text-sm">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="mt-7 space-y-5">
+            <div>
+                <label class="block text-xs uppercase tracking-[.25em] text-cyan-300/70 mb-2">Username</label>
+                <input class="field w-full rounded-xl px-4 py-4" name="username" required>
+            </div>
+
+            <div>
+                <label class="block text-xs uppercase tracking-[.25em] text-cyan-300/70 mb-2">Email</label>
+                <input class="field w-full rounded-xl px-4 py-4" name="email" type="email" required>
+            </div>
+
+            <div>
+                <label class="block text-xs uppercase tracking-[.25em] text-cyan-300/70 mb-2">Strong Password</label>
+                <input class="field w-full rounded-xl px-4 py-4" name="password" type="password" placeholder="Example: SecurePass123!" required>
+            </div>
+
+            <button class="pulse-btn w-full rounded-xl py-4 text-lg">
+                Register Secure Account
+            </button>
+        </form>
+
+        <a class="block mt-5 text-center text-cyan-200 hover:text-white" href="{{ url_for('login') }}">
+            Already registered? Return to login
+        </a>
+    </main>
+</body>
+</html>
