@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Auth OS | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --cyan:#20E6FF; --blue:#1D7BFF; --yellow:#FFD166; --red:#FF3B5C; }
+        body { margin:0; min-height:100vh; background:radial-gradient(circle at 12% 0%, rgba(29,123,255,.19), transparent 30%), #050A14; color:#D7F8FF; font-family:Inter, ui-sans-serif, system-ui, sans-serif; }
+        .shell { display:grid; grid-template-columns:280px 1fr; min-height:100vh; }
+        .sidebar { background:rgba(5,10,20,.95); border-right:1px solid rgba(32,230,255,.2); box-shadow:12px 0 40px rgba(0,0,0,.28); }
+        .nav { display:block; border:1px solid rgba(32,230,255,.18); background:rgba(32,230,255,.04); color:#B9F7FF; transition:.22s; }
+        .nav:hover, .nav.active { transform:translateX(5px); border-color:rgba(32,230,255,.6); background:rgba(32,230,255,.12); box-shadow:0 0 24px rgba(32,230,255,.12); }
+        .panel { background:rgba(7,16,31,.82); border:1px solid rgba(32,230,255,.22); box-shadow:0 0 28px rgba(32,230,255,.08), inset 0 0 18px rgba(29,123,255,.05); backdrop-filter:blur(14px); }
+        .live { animation:blink 1s infinite; box-shadow:0 0 16px #42FF9E; }
+        @keyframes blink { 50% { opacity:.3; } }
+        .metric { transition:.25s; }
+        .metric:hover { transform:translateY(-5px); box-shadow:0 0 30px rgba(32,230,255,.16); }
+        .severity-INFO { color:#69D7FF; }
+        .severity-WARNING { color:#FFD166; }
+        .severity-CRITICAL { color:#FF3B5C; }
+        tr { transition:.2s; }
+        tr:hover { background:rgba(32,230,255,.06); }
+        @media (max-width:900px){ .shell{grid-template-columns:1fr}.sidebar{position:relative}.content{padding:18px!important} }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar p-6">
+            <div class="text-cyan-300 font-black tracking-[.28em] text-sm mb-10">SECURE AUTH OS</div>
+
+            <nav class="space-y-3">
+                <a class="nav active rounded-xl px-4 py-3 font-bold" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav rounded-xl px-4 py-3 font-bold" href="{{ url_for('sessions_page') }}">Active Sessions</a>
+                <a class="nav rounded-xl px-4 py-3 font-bold" href="{{ url_for('logs_page') }}">Security Logs</a>
+                <a class="nav rounded-xl px-4 py-3 font-bold" href="{{ url_for('profile') }}">Profile</a>
+            </nav>
+
+            <div class="mt-10 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+                <div class="text-xs uppercase tracking-widest text-cyan-300/70">Operator</div>
+                <div class="text-xl font-black text-white mt-1">{{ user.username }}</div>
+                <a class="text-red-300 text-sm hover:text-red-200" href="{{ url_for('logout') }}">Close secure session</a>
+            </div>
+        </aside>
+
+        <main class="content p-7 space-y-6">
+            <header class="panel rounded-3xl p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="text-xs text-cyan-300/70 uppercase tracking-[.28em]">Secure Authentication Framework</div>
+                    <h1 class="text-3xl font-black text-white">OS Security Dashboard</h1>
+                </div>
+
+                <div class="flex items-center gap-3 rounded-full border border-green-300/30 bg-green-300/10 px-4 py-2">
+                    <span class="live w-3 h-3 rounded-full bg-green-300"></span>
+                    <span class="font-black text-green-200 tracking-widest">LIVE</span>
+                </div>
+            </header>
+
+            <section class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4">
+                <div class="panel metric rounded-2xl p-5">
+                    <div class="text-cyan-300/70 text-xs tracking-widest">CPU USAGE</div>
+                    <div class="text-4xl font-black text-cyan-200" id="cpu">0%</div>
+                </div>
+
+                <div class="panel metric rounded-2xl p-5">
+                    <div class="text-cyan-300/70 text-xs tracking-widest">MEMORY</div>
+                    <div class="text-4xl font-black text-yellow-200" id="memory">0%</div>
+                </div>
+
+                <div class="panel metric rounded-2xl p-5">
+                    <div class="text-cyan-300/70 text-xs tracking-widest">PROCESSES</div>
+                    <div class="text-4xl font-black text-white" id="processes">0</div>
+                </div>
+
+                <div class="panel metric rounded-2xl p-5">
+                    <div class="text-cyan-300/70 text-xs tracking-widest">ACTIVE SESSIONS</div>
+                    <div class="text-4xl font-black text-green-200" id="activeSessions">{{ active_count }}</div>
+                </div>
+            </section>
+
+            <section class="grid xl:grid-cols-3 gap-6">
+                <div class="panel rounded-3xl p-5">
+                    <h2 class="text-xl font-black text-white mb-4">Login Outcomes</h2>
+                    <canvas id="loginChart" height="210"></canvas>
+                </div>
+
+                <div class="panel rounded-3xl p-5">
+                    <h2 class="text-xl font-black text-white mb-4">Event Severity</h2>
+                    <canvas id="severityChart" height="210"></canvas>
+                </div>
+
+                <div class="panel rounded-3xl p-5">
+                    <h2 class="text-xl font-black text-white mb-4">Event Frequency</h2>
+                    <canvas id="frequencyChart" height="210"></canvas>
+                </div>
+            </section>
+
+            <section class="grid xl:grid-cols-[.8fr_1.2fr] gap-6">
+                <div class="panel rounded-3xl p-5">
+                    <h2 class="text-xl font-black text-white mb-4">Threat Intelligence Panel</h2>
+                    <div id="threats" class="space-y-3"></div>
+                </div>
+
+                <div class="panel rounded-3xl p-5 overflow-auto">
+                    <h2 class="text-xl font-black text-white mb-4">Failed Login Table</h2>
+
+                    <table class="w-full min-w-[850px] text-sm">
+                        <thead class="text-cyan-300/70 uppercase tracking-widest text-xs">
+                            <tr>
+                                <th class="text-left p-3">Timestamp</th>
+                                <th class="text-left p-3">Event Type</th>
+                                <th class="text-left p-3">Origin IP</th>
+                                <th class="text-left p-3">User</th>
+                                <th class="text-left p-3">Severity</th>
+                                <th class="text-left p-3">Message</th>
+                            </tr>
+                        </thead>
+                        <tbody id="failedRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel rounded-3xl p-5">
+                <h2 class="text-xl font-black text-white mb-4">Real-Time Security Logs</h2>
+                <div id="eventLog" class="grid lg:grid-cols-2 gap-3 max-h-[420px] overflow-auto"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let chartData = JSON.parse('{{ chart_data | tojson | safe }}');
+        const chartColors = ['#20E6FF', '#FFD166', '#FF3B5C', '#1D7BFF', '#42FF9E', '#B86BFF'];
+
+        function makeChart(id, type, data, label) {
+            return new Chart(document.getElementById(id), {
+                type,
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label,
+                        data: Object.values(data),
+                        backgroundColor: chartColors,
+                        borderColor: '#20E6FF',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive:true,
+                    plugins:{
+                        legend:{ labels:{ color:'#D7F8FF' } }
+                    },
+                    scales: type === 'bar'
+                        ? {
+                            x:{ ticks:{ color:'#8BEFFF' }, grid:{ color:'rgba(32,230,255,.08)' } },
+                            y:{ ticks:{ color:'#8BEFFF' }, grid:{ color:'rgba(32,230,255,.08)' } }
+                        }
+                        : {}
+                }
+            });
+        }
+
+        const loginChart = makeChart('loginChart', 'pie', chartData.login_outcomes, 'Login Outcomes');
+        const severityChart = makeChart('severityChart', 'doughnut', chartData.severity, 'Severity');
+        const frequencyChart = makeChart('frequencyChart', 'bar', chartData.frequency, 'Frequency');
+
+        function updateChart(chart, data) {
+            chart.data.labels = Object.keys(data);
+            chart.data.datasets[0].data = Object.values(data);
+            chart.update();
+        }
+
+        function sevClass(sev){
+            return `severity-${sev}`;
+        }
+
+        function renderLogs(logs) {
+            document.getElementById('eventLog').innerHTML = logs.map(log => `
+                <div class="rounded-xl border border-cyan-400/15 bg-cyan-400/5 p-3">
+                    <div class="flex justify-between gap-3">
+                        <b class="${sevClass(log.severity)}">${log.event_type}</b>
+                        <span class="text-xs text-cyan-100/45">${log.timestamp}</span>
+                    </div>
+                    <div class="text-sm text-cyan-100/70">${log.message}</div>
+                    <div class="text-xs text-cyan-300/60 mt-1">${log.username} · ${log.ip}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderFailed(logs) {
+            document.getElementById('failedRows').innerHTML = logs.map(log => `
+                <tr>
+                    <td class="p-3 text-cyan-100/65">${log.timestamp}</td>
+                    <td class="p-3 font-bold">${log.event_type}</td>
+                    <td class="p-3">${log.ip}</td>
+                    <td class="p-3">${log.username}</td>
+                    <td class="p-3 font-black ${sevClass(log.severity)}">${log.severity}</td>
+                    <td class="p-3 text-cyan-100/70">${log.message}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderThreats(threats) {
+            document.getElementById('threats').innerHTML = threats.map(t => `
+                <div class="rounded-2xl border ${t.level === 'CRITICAL' ? 'border-red-400/30 bg-red-400/10' : 'border-yellow-300/30 bg-yellow-300/10'} p-4">
+                    <div class="font-black ${t.level === 'CRITICAL' ? 'text-red-300' : 'text-yellow-200'}">${t.level}</div>
+                    <div class="text-sm text-cyan-100/72">${t.text}</div>
+                </div>
+            `).join('');
+        }
+
+        function setText(id, value, suffix='') {
+            document.getElementById(id).textContent = value + suffix;
+        }
+
+        async function refresh() {
+            const res = await fetch("{{ url_for('api_metrics') }}");
+            const data = await res.json();
+
+            setText('cpu', data.cpu, '%');
+            setText('memory', data.memory, '%');
+            setText('processes', data.processes);
+            setText('activeSessions', data.active_sessions);
+
+            updateChart(loginChart, data.chart_data.login_outcomes);
+            updateChart(severityChart, data.chart_data.severity);
+            updateChart(frequencyChart, data.chart_data.frequency);
+
+            renderLogs(data.logs);
+            renderFailed(data.threat_logs);
+            renderThreats(data.threats);
+        }
+
+        refresh();
+        setInterval(refresh, 3200);
+    </script>
+</body>
+</html>
